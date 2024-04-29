@@ -82,6 +82,29 @@ import java.util.regex.Matcher;
  * TODO for 2.3: Rename this class to CollectionRef and re-consider the naming and
  * structure of all subclasses.
  */
+
+/**
+ * 所有表引用的超类，包括对视图、基本表（Hdfs、HBase或数据源表）以及嵌套集合的引用。
+ * 包含连接规格。一个 TableRef 实例（而不是其子类）代表一个未解析的表引用，
+ * 必须在分析过程中解析。所有已解析的表引用都是 TableRef 的子类。
+ *
+ * 表引用的分析遵循两步流程：
+ *
+ * 1. 解析：表引用的路径被解析，然后通用的 TableRef 被替换为具体的表引用
+ *    （BaseTableRef、CollectionTableRef 或 ViewRef）在起始语句中，并给予已解析的路径。
+ *    此步骤由 Analyzer.resolveTableRef() 推动。
+ *
+ * 2. 分析/注册：解析后，具体的表引用被分析以注册其已解析路径的元组描述符，
+ *    并在分析器中注册其他表引用特定的状态（例如，它是否是外部/半连接等）。
+ *
+ * 因此，TableRef 的子类不应调用其超类的 analyze() 方法。
+ *
+ * 2.3版本待办：当前的 TableRef 类层次结构及相关的两阶段分析感觉复杂且难以跟踪。
+ *    我们应该重新组织 TableRef 类结构以清晰地分析，并避免表引用在解析和注册之间“转换性别”。
+ *
+ * 2.3版本待办：将此类重命名为 CollectionRef，并重新考虑所有子类的命名和结构。
+ */
+
 public class TableRef implements ParseNode, Writable {
     private static final Logger LOG = LogManager.getLogger(TableRef.class);
     protected TableName name;

@@ -54,6 +54,12 @@ import java.util.stream.Collectors;
  * Used for sharing members/methods and some of the analysis code, in particular the
  * analysis of the ORDER BY and LIMIT clauses.
  */
+/**
+ * 用于任何通过结果表达式列表返回结果的语句的抽象基类，例如 SelectStmt 或 UnionStmt。
+ * 还维护一个表达式替换映射，用于将 ORDER BY 或 GROUP BY 子句中的表达式替换为相应的结果表达式。
+ * 用于共享成员/方法以及部分分析代码，特别是 ORDER BY 和 LIMIT 子句的分析。
+ */
+
 public abstract class QueryStmt extends StatementBase implements Queriable {
     private static final Logger LOG = LogManager.getLogger(QueryStmt.class);
 
@@ -67,6 +73,7 @@ public abstract class QueryStmt extends StatementBase implements Queriable {
     protected LimitElement limitElement;
     // This is a internal element which is used to query plan.
     // It will not change the origin stmt and present in toSql.
+    // 这是一个用于查询计划的内部元素。 它不会改变原始语句，并且在toSql中呈现。
     protected AssertNumRowsElement assertNumRowsElement;
 
     /**
@@ -75,6 +82,12 @@ public abstract class QueryStmt extends StatementBase implements Queriable {
      * aliases substituted, agg output substituted
      * For a union statement:
      * List of slotrefs into the tuple materialized by the union.
+     */
+    /**
+     * 对于选择语句：
+     * SELECT 子句中的可执行表达式列表（星号扩展、序数和别名替换、聚合输出替换）。
+     * 对于联合语句：
+     * 指向由联合操作物化的元组的 slotrefs 列表。
      */
     protected ArrayList<Expr> resultExprs = Lists.newArrayList();
 
@@ -93,6 +106,22 @@ public abstract class QueryStmt extends StatementBase implements Queriable {
      * resultExprs: c1 belongs to tuple2(tmp)
      * baseTblResultExprs: c1 belongs to tuple1(group by)
      */
+    // 对于选择语句：选择列表表达式解析为基表引用
+    // 对于联合语句：与 resultExprs 相同
+    /**
+     * 对于内联视图，Doris 在语义分析期间会生成一个额外的元组层（虚拟）。
+     * 但如果外部 SELECT 语句中的表达式涉及内联视图中的列，
+     * 它一开始只能映射到这层虚拟元组（@resultExprs）。
+     * 如果你想真正与内联视图中的列关联，
+     * 你需要使用 baseTblSmap 来替换它，以获得正确的表达式（@baseTblResultExprs）。
+     * resultExprs + baseTblSmap = baseTblResultExprs
+     * 例如：
+     * select c1 from (select k1 c1 from table group by k1) tmp;
+     * 元组0: table, 元组1: group by, 元组2: tmp
+     * resultExprs: c1 属于元组2(tmp)
+     * baseTblResultExprs: c1 属于元组1(group by)
+     */
+
     protected ArrayList<Expr> baseTblResultExprs = Lists.newArrayList();
 
     /**
@@ -109,6 +138,12 @@ public abstract class QueryStmt extends StatementBase implements Queriable {
      *  select int_col a, string_col a from alltypessmall;
      * Both columns are using the same alias "a".
      */
+    /**
+     * 选择列表项的别名不必是唯一的。
+     * 这个列表包含了所有非唯一的别名。例如，
+     *   select int_col as a, string_col as a from alltypessmall;
+     * 两个列都使用了相同的别名“a”。
+     */
     protected final ArrayList<Expr> ambiguousAliasList;
 
     protected SortInfo sortInfo;
@@ -117,6 +152,9 @@ public abstract class QueryStmt extends StatementBase implements Queriable {
     // False for nested query stmts with an order-by clause without offset/limit.
     // sortInfo_ is still generated and used in analysis to ensure that the order-by clause
     // is well-formed.
+    // evaluateOrderBy_ 为 true 表示存在一个需要评估的 order by 子句。
+    // 对于包含 order-by 子句但没有 offset/limit 的嵌套查询语句，此值为 False。
+    // sortInfo_ 依然被生成，并在分析中使用，以确保 order-by 子句格式正确。
     protected boolean evaluateOrderBy;
 
     protected boolean needToSql = false;
@@ -215,6 +253,20 @@ public abstract class QueryStmt extends StatementBase implements Queriable {
      * (3) a mix of correlated table refs and table refs rooted at those refs
      *     (the statement is 'self-contained' with respect to correlation)
      */
+    /**
+     * 返回一个列表，包含与此语句相关的所有已物化元组 ID（即，那些来自外部查询块的元组 ID，
+     * 这些元组 ID 是此语句内部的 TableRefs 的根源）。
+     *
+     * 如果此语句包含非法混合使用相关/非相关表引用，则抛出异常。
+     * 如果一个语句同时包含与父查询块相关的 TableRef 以及具有绝对路径的表引用（例如 BaseTableRef），
+     * 则该语句是非法的。这样的语句会生成包含基表扫描的子计划（非常昂贵），因此应该避免。
+     *
+     * 换句话说，以下情况是合法的：
+     * (1) 只包含非相关表引用
+     * (2) 只包含相关表引用
+     * (3) 相关表引用和以这些引用为根的表引用的混合
+     *     （就相关性而言，该语句是‘自包含’的）
+     */
     public List<TupleId> getCorrelatedTupleIds(Analyzer analyzer) throws AnalysisException {
         // Correlated tuple ids of this stmt.
         List<TupleId> correlatedTupleIds = Lists.newArrayList();
@@ -302,6 +354,13 @@ public abstract class QueryStmt extends StatementBase implements Queriable {
      * Sets evaluateOrderBy_ to false for ignored order-by w/o limit/offset in nested
      * queries.
      */
+    /**
+     * 通过解析排序表达式中的别名和序数来创建 sortInfo。
+     * 如果查询语句是内联视图/联合操作的操作数，则不允许有排序但没有限制和偏移的 order-by，
+     * 因为这需要排序和合并交换，后续的查询执行将只能在单一机器上进行。
+     * 对于嵌套查询中被忽略的没有限制/偏移的 order-by，设置 evaluateOrderBy_ 为 false。
+     */
+
     protected void createSortInfo(Analyzer analyzer) throws AnalysisException {
         // not computing order by
         if (orderByElements == null) {
@@ -379,6 +438,13 @@ public abstract class QueryStmt extends StatementBase implements Queriable {
      * total (no limit) sorts.
      * Done after analyzeAggregation() since ordering and result exprs may refer to the
      * outputs of aggregation.
+     */
+    /**
+     * 为单个元组创建元组描述符，该元组由执行排序操作的执行节点物化、排序并输出。
+     * 通过物化排序（order-by）和结果表达式中的槽引用（SlotRefs）来完成此操作。
+     * 排序和结果表达式中的这些槽引用被替换为指向新元组的槽引用。
+     * 这种做法简化了完全排序（不设限制）的排序逻辑。
+     * 此操作应在 analyzeAggregation() 之后执行，因为排序和结果表达式可能引用聚合操作的输出。
      */
     protected void createSortTupleInfo(Analyzer analyzer) throws AnalysisException {
         Preconditions.checkState(evaluateOrderBy);

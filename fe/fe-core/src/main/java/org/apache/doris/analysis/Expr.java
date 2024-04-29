@@ -102,6 +102,7 @@ public abstract class Expr extends TreeNode<Expr> implements ParseNode, Cloneabl
     public static final float FUNCTION_CALL_COST = 10;
 
     // returns true if an Expr is a non-analytic aggregate.
+    // 如果一个表达式是一个非分析聚合，则返回 true
     private static final com.google.common.base.Predicate<Expr> IS_AGGREGATE_PREDICATE =
             new com.google.common.base.Predicate<Expr>() {
                 public boolean apply(Expr arg) {
@@ -111,6 +112,7 @@ public abstract class Expr extends TreeNode<Expr> implements ParseNode, Cloneabl
             };
 
     // Returns true if an Expr is a NOT CompoundPredicate.
+    // 如果一个表达式是一个 NOT 复合谓词，则返回 true
     public static final com.google.common.base.Predicate<Expr> IS_NOT_PREDICATE =
             new com.google.common.base.Predicate<Expr>() {
                 @Override
