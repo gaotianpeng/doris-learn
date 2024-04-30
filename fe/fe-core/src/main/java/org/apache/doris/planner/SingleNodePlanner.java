@@ -106,6 +106,12 @@ import java.util.stream.Collectors;
  * such as local aggregations that are important for distributed execution.
  * The single-node plan needs to be wrapped in a plan fragment for it to be executable.
  */
+/**
+ * 从已分析的解析树构建一个非可执行的单节点计划。
+ * 单节点计划不包含数据交换或数据缩减优化，
+ * 如对分布式执行很重要的本地聚合。
+ * 单节点计划需要被封装在一个计划片段中才能执行
+ */
 public class SingleNodePlanner {
     private static final Logger LOG = LogManager.getLogger(SingleNodePlanner.class);
 

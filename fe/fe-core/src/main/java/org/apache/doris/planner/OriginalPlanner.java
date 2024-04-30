@@ -68,6 +68,14 @@ import java.util.Set;
  * The planner is responsible for turning parse trees into plan fragments that can be shipped off to backends for
  * execution.
  */
+/**
+ * 计划器负责将解析树转换成可以发送到后端执行的计划片段
+ * 
+ * 计划器是数据库管理系统中负责接受用户查询的解析树（一个表示SQL查询结构的树形数据结构），
+ * 并将其转换成为一系列更为具体的执行计划片段（plan fragments）。
+ * 这些计划片段随后可以分发到数据库系统的后端服务器（backends），
+ * 在那里实际执行这些计划，从而完成用户查询请求的处理
+ */
 public class OriginalPlanner extends Planner {
     private static final Logger LOG = LogManager.getLogger(OriginalPlanner.class);
 

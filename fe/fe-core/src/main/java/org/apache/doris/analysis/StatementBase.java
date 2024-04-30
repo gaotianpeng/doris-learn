@@ -75,6 +75,13 @@ public abstract class StatementBase implements ParseNode {
      * Should call the method firstly when override the method, the analyzer param should be
      * the one which statement would use.
      */
+    /**
+     * 分析语句并在分析失败时抛出 AnalysisException 异常。失败可能是由于语句问题，
+     * 或者是因为一个或多个表/视图在目录中缺失。
+     * 分析()实现应确保在分析失败前，尽可能多地在分析器中收集缺失的表/视图。
+     * 在覆盖该方法时应首先调用此方法，分析器参数应为语句将会使用的那个。
+     */
+
     public void analyze(Analyzer analyzer) throws AnalysisException, UserException {
         if (isAnalyzed()) {
             return;

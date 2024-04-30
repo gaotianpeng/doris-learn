@@ -62,6 +62,12 @@ import java.util.Map;
  * right plan subtree. Every runtime filter must record the join node that constructs
  * the filter and the scan nodes that apply the filter (destination nodes).
  */
+/**
+ * 运行时过滤器的表示。运行时过滤器是从形式为 <lhs_expr> = <rhs_expr> 的等值连接谓词生成的，
+ * 其中 lhs_expr 是应用过滤器的表达式，必须由关联连接节点的左侧计划子树的单个元组 ID 绑定，
+ * 而 rhs_expr 是构建过滤器的表达式，可以由右侧计划子树的任意数量的元组 ID 绑定。
+ * 每个运行时过滤器必须记录构建过滤器的连接节点和应用过滤器的扫描节点（目标节点）。
+ */
 public final class RuntimeFilter {
     private static final Logger LOG = LogManager.getLogger(RuntimeFilter.class);
 

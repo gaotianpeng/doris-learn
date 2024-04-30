@@ -22,6 +22,7 @@ import java.util.List;
 /**
  * Used to abstract a common operator interface for statistics deduction to fit both optimizers.
  */
+// 用于抽象一个通用的操作符接口，用于统计信息推导，以适配两种不同的查询优化器。
 public interface PlanStats {
 
     List<StatsDeriveResult> getChildrenStats();

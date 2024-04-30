@@ -34,6 +34,10 @@ import org.apache.logging.log4j.Logger;
  * Contains the analysis result of a query as well as planning-specific
  * parameters and state such as plan-node and plan-fragment id generators.
  */
+/**
+ * 包含查询的分析结果以及特定于计划的参数和状态，
+ * 如计划节点和计划片段的ID生成器。
+ */
 public class PlannerContext {
     private static final Logger LOG = LogManager.getLogger(PlannerContext.class);
 
