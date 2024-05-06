@@ -206,7 +206,7 @@ public class Coordinator implements CoordInterface {
 
     // populated in computeFragmentExecParams()
     private final Map<PlanFragmentId, FragmentExecParams> fragmentExecParamsMap = Maps.newHashMap();
-
+    // 最重要的数据结构，保存了执行计划里包含的所有fragment
     private final List<PlanFragment> fragments;
 
     private Map<Long, BackendExecStates> beToExecStates = Maps.newHashMap();
@@ -531,11 +531,14 @@ public class Coordinator implements CoordInterface {
 
     // Initialize
     protected void prepare() throws UserException {
+        // 为每个PlanFragment创建一个FragmentExecParams结构，用来表示PlanFragment执行时所需的所有参数
         for (PlanFragment fragment : fragments) {
             fragmentExecParamsMap.put(fragment.getFragmentId(), new FragmentExecParams(fragment));
         }
 
         // set inputFragments
+        // 如果一个PlanFragment包含有DataSinkNode，则找到数据发送的目的PlanFragment
+        // 然后指定目的PlanFragment的FragmentExecParams的输入为该PlanFragment的FragmentExecParams。
         for (PlanFragment fragment : fragments) {
             if (!(fragment.getSink() instanceof DataStreamSink)) {
                 continue;
@@ -758,6 +761,10 @@ public class Coordinator implements CoordInterface {
      * @throws RpcException
      * @throws UserException
      */
+    /*
+        将fragmen分发到BE。该阶段会调用BE的Proxy，这是一个异步的行为，
+        coordinator只负责发，但是不负责等待执行结果
+    */
     private void sendFragment() throws TException, RpcException, UserException {
         lock();
         try {
@@ -2258,6 +2265,7 @@ public class Coordinator implements CoordInterface {
 
     // Populates scan_range_assignment_.
     // <fragment, <server, nodeId>>
+    // 针对不同类型的join进行不同的处理，主要逻辑是对fragment合理分配，尽可能保证每个BE节点的请求都是平均
     protected void computeScanRangeAssignment() throws Exception {
         Map<TNetworkAddress, Long> assignedBytesPerHost = Maps.newHashMap();
         Map<TNetworkAddress, Long> replicaNumPerHost = getReplicaNumPerHostForOlapTable();
@@ -2292,13 +2300,16 @@ public class Coordinator implements CoordInterface {
 
             // A fragment may contain both colocate join and bucket shuffle join
             // on need both compute scanRange to init basic data for query coordinator
+            // 针对 colocate join 进行处理
             if (fragmentContainsColocateJoin) {
                 computeScanRangeAssignmentByColocate((OlapScanNode) scanNode, assignedBytesPerHost, replicaNumPerHost);
             }
+            // 针对bucket shuffle join进行处理
             if (fragmentContainsBucketShuffleJoin) {
                 bucketShuffleJoinController.computeScanRangeAssignmentByBucket((OlapScanNode) scanNode,
                         idToBackend, addressToBackendID, replicaNumPerHost);
             }
+            // 针对其它类型的join进行处理
             if (!(fragmentContainsColocateJoin || fragmentContainsBucketShuffleJoin)) {
                 computeScanRangeAssignmentByScheduler(scanNode, locations, assignment, assignedBytesPerHost,
                         replicaNumPerHost);
@@ -2431,6 +2442,7 @@ public class Coordinator implements CoordInterface {
         // duplicate "locations" will be converted to list.
         for (TScanRangeLocations scanRangeLocations : locations) {
             Reference<Long> backendIdRef = new Reference<Long>();
+            // doris采用了Round-Robin算法，使tablet的扫描尽可能地分散到多台机器上去
             TScanRangeLocation minLocation = selectBackendsByRoundRobin(scanRangeLocations,
                     assignedBytesPerHost, replicaNumPerHost, backendIdRef);
             Backend backend = this.idToBackend.get(backendIdRef.getRef());
