@@ -96,6 +96,7 @@ public:
     // number of bytes this query can consume at runtime.
     // The query will be aborted (MEM_LIMIT_EXCEEDED) if it goes over that limit.
     // If query_ctx is not null, some components will be got from query_ctx.
+    // 主要对来自FE的TExecPlanFragmentParams进行解析以及做一些准备工作
     Status prepare(const TExecPlanFragmentParams& request);
 
     // Start execution. Call this prior to get_next().
@@ -152,6 +153,7 @@ public:
 
 private:
     ExecEnv* _exec_env = nullptr; // not owned
+    // plan子树的root节点
     ExecNode* _plan = nullptr;    // lives in _runtime_state->obj_pool()
     std::shared_ptr<QueryContext> _query_ctx;
     // Id of this instance
@@ -209,6 +211,7 @@ private:
     // Output sink for rows sent to this fragment. May not be set, in which case rows are
     // returned via get_next's row batch
     // Created in prepare (if required), owned by this object.
+    // 对应DataSink
     std::unique_ptr<DataSink> _sink;
 
     // Number of rows returned by this fragment

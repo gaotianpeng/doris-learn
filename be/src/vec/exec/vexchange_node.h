@@ -41,7 +41,7 @@ class ExchangeSourceOperator;
 namespace vectorized {
 class VDataStreamRecvr;
 class Block;
-
+// 负责不同fragment的数据接收的Node
 class VExchangeNode : public ExecNode {
 public:
     friend class doris::pipeline::ExchangeSourceOperator;
@@ -62,6 +62,7 @@ private:
     int _num_senders;
     bool _is_merging;
     bool _is_ready;
+    // 负责数据的接收
     std::shared_ptr<VDataStreamRecvr> _stream_recvr;
     RowDescriptor _input_row_desc;
 

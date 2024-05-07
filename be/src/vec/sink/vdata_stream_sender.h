@@ -259,6 +259,11 @@ public:
     // combination. buffer_size is specified in bytes and a soft limit on
     // how much tuple data is getting accumulated before being sent; it only applies
     // when data is added via add_row() and not sent directly via send_batch().
+    /*
+     * 创建一个通道，用于将数据发送到特定的 IP 地址、端口、查询和节点组合
+     * buffer_size 以字节为单位指定，它是在发送之前积累的元组数据量的软限制；
+     * 此限制仅在通过 add_row() 添加数据时适用，而不适用于通过 send_batch() 直接发送数据
+     */
     Channel(Parent* parent, const RowDescriptor& row_desc, const TNetworkAddress& brpc_dest,
             const TUniqueId& fragment_instance_id, PlanNodeId dest_node_id)
             : _parent(parent),

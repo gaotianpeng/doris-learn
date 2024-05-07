@@ -762,7 +762,7 @@ public class Coordinator implements CoordInterface {
      * @throws UserException
      */
     /*
-        将fragmen分发到BE。该阶段会调用BE的Proxy，这是一个异步的行为，
+        将fragment分发到BE。该阶段会调用BE的Proxy，这是一个异步的行为，
         coordinator只负责发，但是不负责等待执行结果
     */
     private void sendFragment() throws TException, RpcException, UserException {

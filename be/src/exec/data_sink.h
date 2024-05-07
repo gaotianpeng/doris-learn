@@ -47,6 +47,7 @@ class Block;
 }
 
 // Superclass of all data sinks.
+// 负责不同fragment的数据发送的node
 class DataSink {
 public:
     DataSink(const RowDescriptor& desc);
